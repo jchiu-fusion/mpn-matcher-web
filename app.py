@@ -95,18 +95,32 @@ ocr_model = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False)
 def extract_part_numbers_file(path, min_length=2, conf_threshold=0.3):
     raw = ocr_model.ocr(path, cls=True)
     candidates = []
-    for _, (txt, score) in raw:
+    for entry in raw:
+        # entry might look like [box_points, (txt,score)] or
+        # [box_points, (txt,score), cls_info]. So find the tuple:
+        text_info = next(
+            (e for e in entry if isinstance(e, tuple) and len(e) == 2),
+            None
+        )
+        if text_info is None:
+            continue
+        txt, score = text_info
+
         if score < conf_threshold:
             continue
         txt2 = txt.upper().replace(" ", "")
         if len(txt2) >= min_length and any(ch.isdigit() for ch in txt2):
             candidates.append((txt2, score))
-    seen, out = set(), []
+
+    # remove duplicates, sort by score
+    seen = set()
+    out = []
     for txt2, sc in sorted(candidates, key=lambda x: -x[1]):
         if txt2 not in seen:
             seen.add(txt2)
             out.append((txt2, sc))
     return out
+
 
 def match_ratio(a: str, b: str) -> float:
     sm = SequenceMatcher(None, a, b)
