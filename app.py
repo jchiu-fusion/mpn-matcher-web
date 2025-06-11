@@ -49,8 +49,21 @@ def extract_part_numbers_file(path, min_length=2, conf_threshold=0.3):
 # ─── YOUR UI ─────────────────────────────────────────────────────────────────
 st.title("MPN Matcher — Web Edition")
 
-# … your code for uploading PDF, parsing invoice, setting `mpn` …
+# 1) Invoice PDF uploader
+pdf_file = st.file_uploader("Upload invoice PDF", type="pdf")
+invoice_lines = []
+if pdf_file:
+    invoice_lines = extract_all_invoice_info_bytes(pdf_file.read())
+    if invoice_lines:
+        st.table(invoice_lines)
+    else:
+        st.error("No invoice lines found.")
 
+# 2) Manual override or select first MPN
+mpn_override = st.text_input("Or manual MPN override", value="")
+mpn = mpn_override.strip() or (invoice_lines[0]["MPN"] if invoice_lines else "")
+
+# 3) Photo uploader & matching (fixed-grid with placeholders)
 imgs = st.file_uploader("Upload photos", type=["png","jpg","jpeg","bmp"], accept_multiple_files=True)
 if imgs and mpn:
     st.write("### Matching Results")
